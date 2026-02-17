@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual env
+.venv/
+venv/
+
+# PyCharm
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# DB file (по желание)
+football.db
