@@ -69,3 +69,16 @@ INSERT INTO cards(match_id, player_id, club_id, minute, card_type)
 SELECT m.id, p.id, c.id, 55, 'Y'
 FROM matches m, players p, clubs c
 WHERE m.match_date='2025-07-20' AND p.full_name='Георги Димитров' AND c.name='Левски София';
+
+-- PLAYERS (sample)
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Иван Петров','2004-02-12','BG','FW',9,c.id,'ACTIVE' FROM clubs c WHERE c.name='Левски София';
+
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Георги Димитров','2003-07-01','BG','MF',8,c.id,'ACTIVE' FROM clubs c WHERE c.name='Левски София';
+
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Марселиньо Силва','1999-03-10','BR','MF',10,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
+
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Никола Стоянов','2002-11-21','BG','DF',4,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
