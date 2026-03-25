@@ -1,190 +1,84 @@
 PRAGMA foreign_keys = ON;
 
--- =========================
--- TABLE: clubs
--- =========================
-CREATE TABLE IF NOT EXISTS clubs (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  name      TEXT NOT NULL UNIQUE,
-  city      TEXT
-);
+-- Clubs
+INSERT INTO clubs(name, city) VALUES
+('Левски София','София'),
+('Лудогорец','Разград'),
+('Ботев Пловдив','Пловдив'),
+('ЦСКА София','София');
 
--- =========================
--- TABLE: players
--- =========================
-CREATE TABLE IF NOT EXISTS players (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  full_name     TEXT NOT NULL,
-  birth_date    TEXT,
-  nationality   TEXT,
-  position      TEXT NOT NULL CHECK (position IN ('GK','DF','MF','FW')),
-  shirt_number  INTEGER CHECK (shirt_number BETWEEN 1 AND 99),
-  club_id       INTEGER,
-  status        TEXT NOT NULL DEFAULT 'ACTIVE'
-                CHECK (status IN ('ACTIVE','INJURED','SUSPENDED','RETIRED','FREE_AGENT')),
+-- League
+INSERT INTO leagues(name, season) VALUES
+('Първа лига','2025/2026');
 
-  CONSTRAINT fk_players_club
-    FOREIGN KEY (club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE SET NULL
-);
+-- League teams
+INSERT INTO league_teams(league_id, club_id)
+SELECT l.id, c.id
+FROM leagues l, clubs c
+WHERE l.name='Първа лига' AND l.season='2025/2026'
+  AND c.name IN ('Левски София','Лудогорец','Ботев Пловдив','ЦСКА София');
 
-CREATE INDEX IF NOT EXISTS idx_players_club_id ON players(club_id);
+-- Players (минимум по 2-3)
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Иван Петров','2004-02-12','BG','FW',9,c.id,'ACTIVE' FROM clubs c WHERE c.name='Левски София';
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Георги Димитров','2003-07-01','BG','MF',8,c.id,'ACTIVE' FROM clubs c WHERE c.name='Левски София';
 
--- =========================
--- TABLE: transfers
--- =========================
-CREATE TABLE IF NOT EXISTS transfers (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  player_id     INTEGER NOT NULL,
-  from_club_id  INTEGER,
-  to_club_id    INTEGER NOT NULL,
-  transfer_date TEXT NOT NULL,
-  fee           INTEGER CHECK (fee >= 0),
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Марселиньо Силва','1999-03-10','BR','MF',10,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Никола Стоянов','2002-11-21','BG','DF',4,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
 
-  CONSTRAINT fk_transfers_player
-    FOREIGN KEY (player_id) REFERENCES players(id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Петър Иванов','2001-05-05','BG','FW',11,c.id,'ACTIVE' FROM clubs c WHERE c.name='Ботев Пловдив';
 
-  CONSTRAINT fk_transfers_from_club
-    FOREIGN KEY (from_club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE SET NULL,
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Александър Колев','2000-09-09','BG','FW',7,c.id,'ACTIVE' FROM clubs c WHERE c.name='ЦСКА София';
 
-  CONSTRAINT fk_transfers_to_club
-    FOREIGN KEY (to_club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT,
+-- Matches (няколко завършени за форма/AI)
+INSERT INTO matches(league_id, round_no, match_date, home_club_id, away_club_id, home_goals, away_goals, status)
+SELECT l.id, 1, '2025-07-20', h.id, a.id, 2, 1, 'FINISHED'
+FROM leagues l, clubs h, clubs a
+WHERE l.name='Първа лига' AND l.season='2025/2026'
+  AND h.name='Левски София' AND a.name='Ботев Пловдив';
 
-  CONSTRAINT chk_transfer_diff CHECK (to_club_id != from_club_id)
-);
+INSERT INTO matches(league_id, round_no, match_date, home_club_id, away_club_id, home_goals, away_goals, status)
+SELECT l.id, 1, '2025-07-21', h.id, a.id, 1, 1, 'FINISHED'
+FROM leagues l, clubs h, clubs a
+WHERE l.name='Първа лига' AND l.season='2025/2026'
+  AND h.name='ЦСКА София' AND a.name='Лудогорец';
 
-CREATE INDEX IF NOT EXISTS idx_transfers_player_id ON transfers(player_id);
+INSERT INTO matches(league_id, round_no, match_date, home_club_id, away_goals, home_goals, away_club_id, status)
+SELECT 1,2,'2025-07-28', h.id, 0, 3, a.id, 'FINISHED'
+FROM clubs h, clubs a
+WHERE h.name='Лудогорец' AND a.name='Ботев Пловдив';
 
--- =========================
--- TABLE: leagues
--- =========================
-CREATE TABLE IF NOT EXISTS leagues (
-  id      INTEGER PRIMARY KEY AUTOINCREMENT,
-  name    TEXT NOT NULL,
-  season  TEXT NOT NULL,
-  UNIQUE (name, season)
-);
+-- Goals (примерни)
+INSERT INTO goals(match_id, player_id, club_id, minute)
+SELECT m.id, p.id, c.id, 23
+FROM matches m, players p, clubs c
+WHERE m.match_date='2025-07-20' AND p.full_name='Иван Петров' AND c.name='Левски София';
 
--- =========================
--- TABLE: league_teams
--- =========================
-CREATE TABLE IF NOT EXISTS league_teams (
-  league_id INTEGER NOT NULL,
-  club_id   INTEGER NOT NULL,
-  PRIMARY KEY (league_id, club_id),
+INSERT INTO goals(match_id, player_id, club_id, minute)
+SELECT m.id, p.id, c.id, 77
+FROM matches m, players p, clubs c
+WHERE m.match_date='2025-07-21' AND p.full_name='Марселиньо Силва' AND c.name='Лудогорец';
 
-  CONSTRAINT fk_league_teams_league
-    FOREIGN KEY (league_id) REFERENCES leagues(id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
+-- Cards (примерни)
+INSERT INTO cards(match_id, player_id, club_id, minute, card_type)
+SELECT m.id, p.id, c.id, 55, 'Y'
+FROM matches m, players p, clubs c
+WHERE m.match_date='2025-07-20' AND p.full_name='Георги Димитров' AND c.name='Левски София';
 
-  CONSTRAINT fk_league_teams_club
-    FOREIGN KEY (club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE
-);
+-- PLAYERS (sample)
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Иван Петров','2004-02-12','BG','FW',9,c.id,'ACTIVE' FROM clubs c WHERE c.name='Левски София';
 
--- =========================
--- TABLE: matches
--- =========================
-CREATE TABLE IF NOT EXISTS matches (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  league_id     INTEGER NOT NULL,
-  round_no      INTEGER NOT NULL CHECK (round_no >= 1),
-  match_date    TEXT NOT NULL,
-  home_club_id  INTEGER NOT NULL,
-  away_club_id  INTEGER NOT NULL,
-  home_goals    INTEGER NOT NULL DEFAULT 0 CHECK (home_goals >= 0),
-  away_goals    INTEGER NOT NULL DEFAULT 0 CHECK (away_goals >= 0),
-  status        TEXT NOT NULL DEFAULT 'SCHEDULED'
-                CHECK (status IN ('SCHEDULED','FINISHED')),
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Георги Димитров','2003-07-01','BG','MF',8,c.id,'ACTIVE' FROM clubs c WHERE c.name='Левски София';
 
-  CONSTRAINT fk_matches_league
-    FOREIGN KEY (league_id) REFERENCES leagues(id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Марселиньо Силва','1999-03-10','BR','MF',10,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
 
-  CONSTRAINT fk_matches_home_club
-    FOREIGN KEY (home_club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT,
-
-  CONSTRAINT fk_matches_away_club
-    FOREIGN KEY (away_club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT,
-
-  CONSTRAINT chk_home_away_diff CHECK (home_club_id <> away_club_id),
-
-  UNIQUE (league_id, round_no, home_club_id, away_club_id, match_date)
-);
-
-CREATE INDEX IF NOT EXISTS idx_matches_league_round ON matches(league_id, round_no);
-CREATE INDEX IF NOT EXISTS idx_matches_home ON matches(home_club_id);
-CREATE INDEX IF NOT EXISTS idx_matches_away ON matches(away_club_id);
-
--- =========================
--- TABLE: goals
--- =========================
-CREATE TABLE IF NOT EXISTS goals (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  match_id  INTEGER NOT NULL,
-  player_id INTEGER NOT NULL,
-  club_id   INTEGER NOT NULL,
-  minute    INTEGER NOT NULL CHECK (minute BETWEEN 1 AND 130),
-
-  CONSTRAINT fk_goals_match
-    FOREIGN KEY (match_id) REFERENCES matches(id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
-
-  CONSTRAINT fk_goals_player
-    FOREIGN KEY (player_id) REFERENCES players(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT,
-
-  CONSTRAINT fk_goals_club
-    FOREIGN KEY (club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT
-);
-
-CREATE INDEX IF NOT EXISTS idx_goals_match_id ON goals(match_id);
-CREATE INDEX IF NOT EXISTS idx_goals_player_id ON goals(player_id);
-
--- =========================
--- TABLE: cards
--- =========================
-CREATE TABLE IF NOT EXISTS cards (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  match_id  INTEGER NOT NULL,
-  player_id INTEGER NOT NULL,
-  club_id   INTEGER NOT NULL,
-  minute    INTEGER NOT NULL CHECK (minute BETWEEN 1 AND 130),
-  card_type TEXT NOT NULL CHECK (card_type IN ('Y','R')),
-
-  CONSTRAINT fk_cards_match
-    FOREIGN KEY (match_id) REFERENCES matches(id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE,
-
-  CONSTRAINT fk_cards_player
-    FOREIGN KEY (player_id) REFERENCES players(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT,
-
-  CONSTRAINT fk_cards_club
-    FOREIGN KEY (club_id) REFERENCES clubs(id)
-    ON UPDATE CASCADE
-    ON DELETE RESTRICT
-);
-
-CREATE INDEX IF NOT EXISTS idx_cards_match_id ON cards(match_id);
-CREATE INDEX IF NOT EXISTS idx_cards_player_id ON cards(player_id);
+INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
+SELECT 'Никола Стоянов','2002-11-21','BG','DF',4,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
