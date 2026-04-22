@@ -82,3 +82,9 @@ SELECT 'Марселиньо Силва','1999-03-10','BR','MF',10,c.id,'ACTIVE'
 
 INSERT INTO players(full_name, birth_date, nationality, position, shirt_number, club_id, status)
 SELECT 'Никола Стоянов','2002-11-21','BG','DF',4,c.id,'ACTIVE' FROM clubs c WHERE c.name='Лудогорец';
+
+INSERT INTO matches (league_id, round_no, match_date, home_club_id, away_club_id)
+VALUES
+(1, 1, '2026-03-20', 1, 2),
+(1, 1, '2026-03-20', 3, 4),
+(1, 1, '2026-03-20', 5, 6);

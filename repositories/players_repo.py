@@ -33,6 +33,11 @@ def _validate_birth_date(birth_date: str | None) -> str | None:
 		raise ValueError("датата трябва да е във формат YYYY-MM-DD")
 	return bd
 
+from db import fetch_one
+
+def find_player_by_name(name):
+    return fetch_one("SELECT * FROM players WHERE full_name=?", (name,))
+
 def _validate_number(number: int | str | None) -> int | None:
 	if number is None:
 		return None

@@ -1,7 +1,7 @@
 import re
 from logger import get_logger
 
-# --------- CLUBS ----------
+# clubs
 from repositories.clubs_repo import (
     add_club,
     list_clubs,
@@ -10,105 +10,100 @@ from repositories.clubs_repo import (
     delete_club,
 )
 
-# --------- PLAYERS ----------
-from players_service import PlayersService
-
-# --------- TRANSFERS ----------
-from transfers_service import (
-    transfer_player,
-    list_transfers_by_player,
-)
+# services
+from services.players_service import PlayersService
+from services.transfers_service import TransfersService
+from services.matches_service import MatchesService
 
 logger = get_logger()
-players = PlayersService()
 
-# =======================
+# =========================
 # REGEX
-# =======================
+# =========================
 
-# --- CLUBS ---
-ADD = re.compile(r"^Добави\s+клуб\s+(.+?)(?:\s+град\s+(.+))?$", re.IGNORECASE)
-LIST = re.compile(r"^Покажи\s+всички\s+клубове$", re.IGNORECASE)
-REN = re.compile(r"^Преименувай\s+клуб\s+(.+?)\s+на\s+(.+)$", re.IGNORECASE)
-DEL = re.compile(r"^Изтрий\s+клуб\s+(.+)$", re.IGNORECASE)
+# clubs
+ADD_CLUB = re.compile(r"^Добави\s+клуб\s+(.+?)(?:\s+град\s+(.+))?$", re.IGNORECASE)
+LIST_CLUBS = re.compile(r"^(?:Покажи\s+всички\s+)?клубове$", re.IGNORECASE)
+REN_CLUB = re.compile(r"^Преименувай\s+клуб\s+(.+?)\s+на\s+(.+)$", re.IGNORECASE)
+DEL_CLUB = re.compile(r"^Изтрий\s+клуб\s+(.+)$", re.IGNORECASE)
 
-# --- PLAYERS ---
-P_ADD = re.compile(
-    r"^Добави\s+играч\s+(.+?)\s+в\s+(.+?)\s+позиция\s+(GK|DF|MF|FW)\s+номер\s+(\d{1,2})"
-    r"(?:\s+роден\s+(\d{4}-\d{2}-\d{2}))?"
-    r"(?:\s+националност\s+(.+))?$",
+# players
+ADD_PLAYER = re.compile(
+    r"^Добави\s+играч\s+(.+?)\s+в\s+(.+?)\s+позиция\s+(GK|DF|MF|FW)\s+номер\s+(\d+)$",
     re.IGNORECASE
 )
+LIST_PLAYERS = re.compile(r"^Покажи\s+играчи\s+на\s+(.+)$", re.IGNORECASE)
+UPDATE_NUMBER = re.compile(r"^Смени\s+номер\s+на\s+(.+?)\s+на\s+(\d+)$", re.IGNORECASE)
+DEL_PLAYER = re.compile(r"^Изтрий\s+играч\s+(.+)$", re.IGNORECASE)
 
-P_LIST = re.compile(r"^Покажи\s+играчи\s+на\s+(.+)$", re.IGNORECASE)
-P_NUM = re.compile(r"^Смени\s+номер\s+на\s+(.+?)\s+на\s+(\d{1,2})$", re.IGNORECASE)
-P_DEL = re.compile(r"^Изтрий\s+играч\s+(.+)$", re.IGNORECASE)
-
-# --- TRANSFERS ---
-T_TRANSFER = re.compile(
-    r"^Трансфер\s+(.+?)\s+от\s+(.+?)\s+в\s+(.+?)\s+(\d{4}-\d{2}-\d{2})(?:\s+сума\s+(\d+))?$",
+# transfers
+TRANSFER = re.compile(
+    r"^Трансфер\s+(.+?)\s+от\s+(.+?)\s+в\s+(.+?)\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d+))?$",
     re.IGNORECASE
 )
+SHOW_TRANSFERS_PLAYER = re.compile(r"^Покажи\s+трансфери\s+на\s+(.+)$", re.IGNORECASE)
 
-T_SHOW_PLAYER = re.compile(
-    r"^Покажи\s+трансфери\s+на\s+(.+)$",
-    re.IGNORECASE
-)
+# matches
+SELECT_MATCH = re.compile(r"^Избери\s+мач\s+(\d+)$", re.IGNORECASE)
+RESULT = re.compile(r"^Резултат\s+(.+?)-(.+?)\s+(\d+):(\d+)\s+запиши$", re.IGNORECASE)
+GOAL = re.compile(r"^Гол\s+(.+?)\s+(.+?)\s+(\d+)\s+минута$", re.IGNORECASE)
+CARD = re.compile(r"^Картон\s+(.+?)\s+(.+?)\s+(Y|R)\s+(\d+)$", re.IGNORECASE)
+EVENTS = re.compile(r"^Покажи\s+събития$", re.IGNORECASE)
 
-# --- SYSTEM ---
-HELP = re.compile(r"^(помощ|help|покажи\s+команди)$", re.IGNORECASE)
+# system
+HELP = re.compile(r"^(помощ|help)$", re.IGNORECASE)
 EXIT = re.compile(r"^(изход|exit|quit)$", re.IGNORECASE)
 
-
-# =======================
+# =========================
 # HELP
-# =======================
+# =========================
 
-def help_text() -> str:
+def help_text():
     return "\n".join([
-        "Команди:",
+        "=== CLUBS ===",
+        "Добави клуб <име> [град <град>]",
+        "клубове",
+        "Преименувай клуб <старо> на <ново>",
+        "Изтрий клуб <име>",
         "",
-        "Клубове:",
-        "  Добави клуб <име> [град <град>]",
-        "  Покажи всички клубове",
-        "  Преименувай клуб <старо> на <ново>",
-        "  Изтрий клуб <име>",
+        "=== PLAYERS ===",
+        "Добави играч <име> в <клуб> позиция <GK/DF/MF/FW> номер <№>",
+        "Покажи играчи на <клуб>",
+        "Смени номер на <играч> на <№>",
+        "Изтрий играч <име>",
         "",
-        "Играчѝ:",
-        "  Добави играч <име> в <клуб> позиция <GK|DF|MF|FW> номер <N>",
-        "  Покажи играчи на <клуб>",
-        "  Смени номер на <име> на <N>",
-        "  Изтрий играч <име>",
+        "=== TRANSFERS ===",
+        "Трансфер <играч> от <клуб> в <клуб> YYYY-MM-DD [сума]",
+        "Покажи трансфери на <играч>",
         "",
-        "Трансфери:",
-        "  Трансфер <играч> от <клуб> в <клуб> YYYY-MM-DD [сума N]",
-        "  Покажи трансфери на <играч>",
+        "=== MATCHES ===",
+        "Избери мач <id>",
+        "Резултат <Домакин>-<Гост> X:Y запиши",
+        "Гол <Играч> <Отбор> <минута> минута",
+        "Картон <Играч> <Отбор> Y/R <минута>",
+        "Покажи събития",
         "",
-        "Други:",
-        "  помощ",
-        "  изход",
+        "помощ / изход"
     ])
 
-
-# =======================
-# FORMATTERS
-# =======================
-
-def format_clubs() -> str:
+def format_clubs():
     clubs = list_clubs()
     if not clubs:
         return "Няма клубове."
     return "\n".join(
-        f"{c['id']}. {c['name']}" + (f" ({c['city']})" if c.get("city") else "")
+        f"{c['id']}. {c['name']}" + (f" ({c['city']})" if c["city"] else "")
         for c in clubs
     )
 
-
-# =======================
+# =========================
 # MAIN
-# =======================
+# =========================
 
 def main():
+    players_service = PlayersService()
+    transfers_service = TransfersService()
+    matches_service = MatchesService()
+
     print(help_text())
 
     while True:
@@ -118,121 +113,141 @@ def main():
 
         logger.info(cmd)
 
-        # EXIT
         if EXIT.match(cmd):
             break
 
-        # HELP
         if HELP.match(cmd):
             print(help_text())
             continue
 
-        # =======================
-        # CLUBS
-        # =======================
-
-        m = ADD.match(cmd)
+        # ===== CLUBS =====
+        m = ADD_CLUB.match(cmd)
         if m:
             try:
-                new_id = add_club(m.group(1), m.group(2))
-                print(f"OK: добавен клуб id={new_id}")
+                print(f"OK id={add_club(m.group(1), m.group(2))}")
             except ValueError as e:
-                print(f"Грешка: {e}")
+                print(e)
             continue
 
-        if LIST.match(cmd):
+        if LIST_CLUBS.match(cmd):
             print(format_clubs())
             continue
 
-        m = REN.match(cmd)
+        m = REN_CLUB.match(cmd)
         if m:
             club = find_club_by_name(m.group(1))
             if not club:
-                print("Грешка: няма такъв клуб.")
+                print("няма такъв клуб")
                 continue
-            try:
-                affected = update_club(club["id"], m.group(2), club.get("city"))
-                print(f"OK: преименувано ({affected})")
-            except ValueError as e:
-                print(f"Грешка: {e}")
+            update_club(club["id"], m.group(2), club["city"])
+            print("OK")
             continue
 
-        m = DEL.match(cmd)
+        m = DEL_CLUB.match(cmd)
         if m:
             club = find_club_by_name(m.group(1))
             if not club:
-                print("Грешка: няма такъв клуб.")
+                print("няма такъв клуб")
                 continue
+            delete_club(club["id"])
+            print("OK")
+            continue
+
+        # ===== PLAYERS =====
+        m = ADD_PLAYER.match(cmd)
+        if m:
             try:
-                affected = delete_club(club["id"])
-                print(f"OK: изтрито ({affected})")
+                print(players_service.add(m.group(1), m.group(2), m.group(3), int(m.group(4))))
             except ValueError as e:
-                print(f"Грешка: {e}")
+                print(e)
             continue
 
-        # =======================
-        # PLAYERS
-        # =======================
-
-        m = P_ADD.match(cmd)
+        m = LIST_PLAYERS.match(cmd)
         if m:
-            print(players.add(
-                full_name=m.group(1),
-                club=m.group(2),
-                position=m.group(3),
-                number=m.group(4),
-                birth_date=m.group(5),
-                nationality=m.group(6),
-            ))
+            print(players_service.list_by_club(m.group(1)))
             continue
 
-        m = P_LIST.match(cmd)
-        if m:
-            print(players.list_by_club(m.group(1)))
-            continue
-
-        m = P_NUM.match(cmd)
-        if m:
-            print(players.change_number(m.group(1), m.group(2)))
-            continue
-
-        m = P_DEL.match(cmd)
-        if m:
-            print(players.delete(m.group(1)))
-            continue
-
-        # =======================
-        # TRANSFERS
-        # =======================
-
-        m = T_TRANSFER.match(cmd)
+        m = UPDATE_NUMBER.match(cmd)
         if m:
             try:
-                print(transfer_player(
-                    m.group(1),
-                    m.group(2),
-                    m.group(3),
-                    m.group(4),
-                    m.group(5)
+                print(players_service.update_number(m.group(1), int(m.group(2))))
+            except ValueError as e:
+                print(e)
+            continue
+
+        m = DEL_PLAYER.match(cmd)
+        if m:
+            try:
+                print(players_service.delete(m.group(1)))
+            except ValueError as e:
+                print(e)
+            continue
+
+        # ===== TRANSFERS =====
+        m = TRANSFER.match(cmd)
+        if m:
+            try:
+                print(transfers_service.transfer_player(
+                    m.group(1), m.group(2), m.group(3),
+                    m.group(4), m.group(5)
                 ))
-            except Exception as e:
-                print(f"Грешка: {e}")
+            except ValueError as e:
+                print(e)
             continue
 
-        m = T_SHOW_PLAYER.match(cmd)
+        m = SHOW_TRANSFERS_PLAYER.match(cmd)
+        if m:
+            print(transfers_service.list_transfers_by_player(m.group(1)))
+            continue
+
+        # ===== MATCHES =====
+        m = SELECT_MATCH.match(cmd)
         if m:
             try:
-                rows = list_transfers_by_player(m.group(1))
-                if not rows:
-                    print("Няма трансфери.")
-                else:
-                    for r in rows:
-                        print(f"{r['transfer_date']}: {r['from_club']} → {r['to_club']}")
-            except Exception as e:
-                print(f"Грешка: {e}")
+                print(matches_service.select_match(int(m.group(1))))
+            except ValueError as e:
+                print(e)
             continue
 
-        print("Неразпозната команда. Напиши 'помощ'.")
+        m = RESULT.match(cmd)
+        if m:
+            try:
+                print(matches_service.add_result(
+                    m.group(1), m.group(2),
+                    int(m.group(3)), int(m.group(4))
+                ))
+            except ValueError as e:
+                print(e)
+            continue
+
+        m = GOAL.match(cmd)
+        if m:
+            try:
+                print(matches_service.add_goal(
+                    m.group(1), m.group(2), int(m.group(3))
+                ))
+            except ValueError as e:
+                print(e)
+            continue
+
+        m = CARD.match(cmd)
+        if m:
+            try:
+                print(matches_service.add_card(
+                    m.group(1), m.group(2), m.group(3), int(m.group(4))
+                ))
+            except ValueError as e:
+                print(e)
+            continue
+
+        if EVENTS.match(cmd):
+            try:
+                print(matches_service.show_events())
+            except ValueError as e:
+                print(e)
+            continue
+
+        print("Неразпозната команда.")
 
 
 if __name__ == "__main__":
